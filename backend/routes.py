@@ -78,10 +78,32 @@ def create_song():
     song = request.json
     song_id = song["id"]
     
-    alreadyExists = db.songs.find_one({"id": song_id})
+    already_exists = db.songs.find_one({"id": song_id})
     
-    if alreadyExists:
+    if already_exists:
         return {"Message": f"song with id {song_id} already present"}, 302
 
     result = db.songs.insert_one(song)
     return {"inserted id": parse_json(result.inserted_id)}
+
+@app.route("/song/<int:id>", methods=["PUT"])
+def update_song(id):
+    already_exists = db.songs.find_one({"id": id})
+
+    if not already_exists:
+        return {"message": "song not found"}, 404
+    
+    song_data = request.get_json()
+    result = db.songs.update_one({"id": id}, {"$set": song_data})
+
+    if result.modified_count < 1:
+        return {"message": "song found, but nothing updated"}
+
+    return parse_json(result.raw_result)
+
+@app.route("/song/<int:id>", methods=["DELETE"])
+def delete_song(id):
+    result = db.songs.delete_one({"id": id})
+    if result.deleted_count < 1:
+        return {"message": "song not found"}, 404
+    return {}, 204
